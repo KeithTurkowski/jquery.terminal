@@ -756,6 +756,10 @@
         self.append('<span class="prompt"></span><span></span>' +
                     '<span class="cursor">&nbsp;</span><span></span>');
         var clip = $('<textarea/>').addClass('clipboard').appendTo(self);
+        var altinput = options.altinput;
+        if(altinput) {
+            $('<input type="text" style="background: transparent; border: none; color: transparent; position: absolute; outline: none; width: 1px;"/>').addClass('altinput').appendTo(self);
+        }
         if (options.width) {
             self.width(options.width);
         }
@@ -819,7 +823,7 @@
         }
         // -----------------------------------------------------------------------
         // :: Search through command line history. If next is not defined or false
-        // :: it searches for the first item from the end. If true it search for 
+        // :: it searches for the first item from the end. If true it search for
         // :: the next item
         // -----------------------------------------------------------------------
         function reverse_history_search(next) {
@@ -1445,9 +1449,10 @@
             },
             destroy: function() {
                 $(document.documentElement || window).unbind('.cmd');
+                $(document.documentElement || window).unbind('.altinput');
                 self.stopTime('blink', blink);
                 self.find('.cursor').next().remove().end().prev().remove().end().remove();
-                self.find('.prompt, .clipboard').remove();
+                self.find('.prompt, .clipboard, .altinput').remove();
                 self.removeClass('cmd').removeData('cmd');
                 return self;
             },
@@ -1538,7 +1543,7 @@
         }
         // Keystrokes
         var object;
-        $(document.documentElement || window).bind('keypress.cmd', function(e) {
+        var keystrokes = function(e) {
             var result;
             if (e.ctrlKey && e.which === 99) { // CTRL+C
                 return true;
@@ -1568,7 +1573,14 @@
             } else {
                 return result;
             }
-        }).bind('keydown.cmd', keydown_event);
+        };
+        if(altinput){
+            $(document.documentElement || window).bind('input.altinput', function(){self.set(self.find('.altinput').val());})
+                                                 .bind('change.altinput', function(){self.find('.altinput').val(''); keydown_event({which: 13, altKey: false, shiftKey: false, keyCode: 13});});
+        }
+        else{
+            $(document.documentElement || window).bind('keypress.cmd', keystrokes).bind('keydown.cmd', keydown_event);
+        }
         // characters
         self.data('cmd', self);
         return self;
@@ -3632,7 +3644,7 @@
                 },
                 // -----------------------------------------------------------------------
                 // :: Make the terminal in focus or blur depending on the first argument.
-                // :: If there is more then one terminal it will switch to next one, 
+                // :: If there is more then one terminal it will switch to next one,
                 // :: if the second argument is set to true the events will be not fired.
                 // :: Used on init
                 // -----------------------------------------------------------------------
@@ -4258,7 +4270,8 @@
                         }
                         scroll_to_bottom();
                     },
-                    commands: commands
+                    commands: commands,
+                    altinput: settings.altinput
                 });
                 if (enabled) {
                     self.focus(undefined, true);
@@ -4275,6 +4288,7 @@
                     if (!self.enabled()) {
                         self.focus();
                     }
+                        self.find('.altinput').focus();
                 }).mousedown(function(e) {
                     if (e.which == 2) {
                         self.insert(getSelectedText());
